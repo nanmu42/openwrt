@@ -1,0 +1,104 @@
+commit 8b16e0daa53fbb366c0c83df492ea6ef5606fc49
+Author: nanmu42 <i@nanmu.me>
+Date:   Wed Jun 12 20:16:31 2024 +0800
+
+    mmc: Add MMC_QUIRK_BROKEN_ROCR_S18A for rtl8822cs
+    
+    ref: https://github.com/friendlyarm/kernel-rockchip/commit/aee62cf7ae16b5ede6c6d92a8ee20e796482754e
+
+diff --git a/drivers/mmc/core/card.h b/drivers/mmc/core/card.h
+index 7bd392d55c..83d7daf5ef 100644
+--- a/drivers/mmc/core/card.h
++++ b/drivers/mmc/core/card.h
+@@ -59,6 +59,9 @@ struct mmc_fixup {
+ 	/* for MMC cards */
+ 	unsigned int ext_csd_rev;
+ 
++	/* Match against functions declared in device tree */
++	const char *of_compatible;
++
+ 	void (*vendor_fixup)(struct mmc_card *card, int data);
+ 	int data;
+ };
+@@ -119,6 +122,21 @@ struct mmc_fixup {
+ 		   _vendor, _device,					\
+ 		   _fixup, _data, EXT_CSD_REV_ANY)			\
+ 
++#define SDIO_FIXUP_COMPATIBLE(_compatible, _fixup, _data)		\
++	{						\
++		.name = CID_NAME_ANY,			\
++		.manfid = CID_MANFID_ANY,		\
++		.oemid = CID_OEMID_ANY,			\
++		.rev_start = 0,				\
++		.rev_end = -1ull,			\
++		.cis_vendor = SDIO_ANY_ID,		\
++		.cis_device = SDIO_ANY_ID,		\
++		.vendor_fixup = (_fixup),		\
++		.data = (_data),			\
++		.ext_csd_rev = EXT_CSD_REV_ANY,		\
++		.of_compatible = _compatible,	\
++	}
++
+ #define cid_rev(hwrev, fwrev, year, month)	\
+ 	(((u64) hwrev) << 40 |			\
+ 	 ((u64) fwrev) << 32 |			\
+@@ -222,4 +240,9 @@ static inline int mmc_card_broken_hpi(const struct mmc_card *c)
+ 	return c->quirks & MMC_QUIRK_BROKEN_HPI;
+ }
+ 
++static inline int mmc_card_broken_rocr_s18a(const struct mmc_card *c)
++{
++	return c->quirks & MMC_QUIRK_BROKEN_ROCR_S18A;
++}
++
+ #endif
+diff --git a/drivers/mmc/core/quirks.h b/drivers/mmc/core/quirks.h
+index d68e6e513a..ab72ac6781 100644
+--- a/drivers/mmc/core/quirks.h
++++ b/drivers/mmc/core/quirks.h
+@@ -145,6 +145,13 @@ static const struct mmc_fixup __maybe_unused sdio_fixup_methods[] = {
+ 	END_FIXUP
+ };
+ 
++static const struct mmc_fixup __maybe_unused sdio_card_init_methods[] = {
++	SDIO_FIXUP_COMPATIBLE("realtek,rtl8822cs", add_quirk,
++			      MMC_QUIRK_BROKEN_ROCR_S18A),
++
++	END_FIXUP
++};
++
+ static inline void mmc_fixup_device(struct mmc_card *card,
+ 				    const struct mmc_fixup *table)
+ {
+diff --git a/drivers/mmc/core/sdio.c b/drivers/mmc/core/sdio.c
+index 68edf7a615..637261bdf1 100644
+--- a/drivers/mmc/core/sdio.c
++++ b/drivers/mmc/core/sdio.c
+@@ -708,6 +708,14 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
+ 	if (host->ops->init_card)
+ 		host->ops->init_card(host, card);
+ 
++	mmc_fixup_device(card, sdio_card_init_methods);
++
++	card->ocr = ocr_card;
++
++	if (mmc_card_broken_rocr_s18a(card)) {
++		rocr &= ~R4_18V_PRESENT;
++	}
++
+ 	/*
+ 	 * If the host and card support UHS-I mode request the card
+ 	 * to switch to 1.8V signaling level.  No 1.8v signalling if
+diff --git a/include/linux/mmc/card.h b/include/linux/mmc/card.h
+index 37f9758751..596f048a79 100644
+--- a/include/linux/mmc/card.h
++++ b/include/linux/mmc/card.h
+@@ -292,6 +292,7 @@ struct mmc_card {
+ #define MMC_QUIRK_BROKEN_IRQ_POLLING	(1<<11)	/* Polling SDIO_CCCR_INTx could create a fake interrupt */
+ #define MMC_QUIRK_TRIM_BROKEN	(1<<12)		/* Skip trim */
+ #define MMC_QUIRK_BROKEN_HPI	(1<<13)		/* Disable broken HPI support */
+ #define MMC_QUIRK_BROKEN_SD_DISCARD	(1<<14)	/* Disable broken SD discard support */
++#define MMC_QUIRK_BROKEN_ROCR_S18A	(1<<16)	/* Disable broken S18A (1) in the R4 response */
+ 
+ 	bool			reenable_cmdq;	/* Re-enable Command Queue */
+ 

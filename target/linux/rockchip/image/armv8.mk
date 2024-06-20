@@ -46,6 +46,14 @@ define Device/friendlyarm_nanopi-r2s
 endef
 TARGET_DEVICES += friendlyarm_nanopi-r2s
 
+define Device/friendlyarm_nanopi-r2s-plus
+  DEVICE_VENDOR := FriendlyARM
+  DEVICE_MODEL := NanoPi R2S Plus
+  SOC := rk3328
+  DEVICE_PACKAGES := kmod-usb-net-rtl8152 kmod-r8169 kmod-mac80211 kmod-cfg80211 kmod-rtw88-8822ce rtl8822ce-firmware wpad-basic-mbedtls
+endef
+TARGET_DEVICES += friendlyarm_nanopi-r2s-plus
+
 define Device/friendlyarm_nanopi-r4s
   DEVICE_VENDOR := FriendlyARM
   DEVICE_MODEL := NanoPi R4S

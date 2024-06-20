@@ -1,0 +1,172 @@
+commit d891241d8249a0bf1b15d8bacf28e0e39de9ab27
+Author: nanmu42 <i@nanmu.me>
+Date:   Sat Jun 1 15:37:15 2024 +0800
+
+    [PATCH] arm64: dts: rockchip: Add FriendlyARM NanoPi R2S Plus
+    
+    The NanoPi R2S Plus is a small variant of NanoPi R2S with a on-board
+    eMMC flash (32G) and a on-board M.2 SDIO Wi-Fi included.
+    
+    Signed-off-by: Zhennan Li <i@nanmu.me>
+
+diff --git a/arch/arm64/boot/dts/rockchip/Makefile b/arch/arm64/boot/dts/rockchip/Makefile
+index e7728007fd1..259e59594bf 100644
+--- a/arch/arm64/boot/dts/rockchip/Makefile
++++ b/arch/arm64/boot/dts/rockchip/Makefile
+@@ -17,6 +17,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3328-evb.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3328-nanopi-r2c.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3328-nanopi-r2c-plus.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3328-nanopi-r2s.dtb
++dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3328-nanopi-r2s-plus.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3328-orangepi-r1-plus.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3328-orangepi-r1-plus-lts.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3328-rock64.dtb
+diff --git a/arch/arm64/boot/dts/rockchip/rk3328-nanopi-r2s-plus.dts b/arch/arm64/boot/dts/rockchip/rk3328-nanopi-r2s-plus.dts
+new file mode 100644
+index 00000000000..24c3c41d166
+--- /dev/null
++++ b/arch/arm64/boot/dts/rockchip/rk3328-nanopi-r2s-plus.dts
+@@ -0,0 +1,49 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++/*
++ * Copyright (c) 2021 FriendlyElec Computer Tech. Co., Ltd.
++ * (http://www.friendlyarm.com)
++ *
++ * Copyright (c) 2023 FriendlyElec Computer Tech. Co., Ltd.
++ * (http://www.friendlyarm.com)
++ *
++ * Copyright (c) 2023 Zhennan Li <i@nanmu.me>
++ */
++
++/dts-v1/;
++#include "rk3328-nanopi-r2s.dts"
++
++/ {
++	model = "FriendlyElec NanoPi R2S Plus";
++	compatible = "friendlyarm,nanopi-r2s-plus", "rockchip,rk3328";
++
++		aliases {
++			mmc1 = &emmc;
++		};
++};
++
++&emmc {
++	bus-width = <8>;
++	cap-mmc-highspeed;
++	max-frequency = <150000000>;
++	mmc-ddr-1_8v;
++	mmc-hs200-1_8v;
++	non-removable;
++	pinctrl-names = "default";
++	pinctrl-0 = <&emmc_clk &emmc_cmd &emmc_bus8>;
++	vmmc-supply = <&vcc_io_33>;
++	vqmmc-supply = <&vcc18_emmc>;
++	status = "okay";
++};
++
++&sdmmc_ext {
++	vmmc-supply = <&vcc_io_33>;
++	vqmmc-supply = <&vcc_18>;
++	max-frequency = <150000000>;
++	sd-uhs-sdr104;
++	status = "okay";
++
++	rtl8822cs@1 {
++		reg = <1>;
++		compatible = "realtek,rtl8822cs";
++	};
++};
+\ No newline at end of file
+diff --git a/arch/arm64/boot/dts/rockchip/rk3328-nanopi-r2s.dts b/arch/arm64/boot/dts/rockchip/rk3328-nanopi-r2s.dts
+index 1445b879ac7..a4399da7d8b 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3328-nanopi-r2s.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3328-nanopi-r2s.dts
+@@ -14,6 +14,7 @@
+ 	compatible = "friendlyarm,nanopi-r2s", "rockchip,rk3328";
+ 
+ 	aliases {
++		ethernet0 = &gmac2io;
+ 		ethernet1 = &rtl8153;
+ 		mmc0 = &sdmmc;
+ 	};
+diff --git a/arch/arm64/boot/dts/rockchip/rk3328.dtsi b/arch/arm64/boot/dts/rockchip/rk3328.dtsi
+index 3778fe5c42a..3e35e67b634 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3328.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3328.dtsi
+@@ -1004,6 +1004,20 @@
+ 		status = "disabled";
+ 	};
+ 
++	sdmmc_ext: mmc@ff5f0000 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		compatible = "rockchip,rk3328-dw-mshc", "rockchip,rk3288-dw-mshc";
++		reg = <0x0 0xff5f0000 0x0 0x4000>;
++		clock-freq-min-max = <400000 150000000>;
++		clocks = <&cru HCLK_SDMMC_EXT>, <&cru SCLK_SDMMC_EXT>,
++				 <&cru SCLK_SDMMC_EXT_DRV>, <&cru SCLK_SDMMC_EXT_SAMPLE>;
++		clock-names = "biu", "ciu", "ciu-drive", "ciu-sample";
++		fifo-depth = <0x100>;
++		interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
++		status = "disabled";
++	};
++
+ 	usbdrd3: usb@ff600000 {
+ 		compatible = "rockchip,rk3328-dwc3", "snps,dwc3";
+ 		reg = <0x0 0xff600000 0x0 0x100000>;
+diff --git a/drivers/mmc/core/card.h b/drivers/mmc/core/card.h
+index b7754a1b8d9..9c19c859b30 100644
+--- a/drivers/mmc/core/card.h
++++ b/drivers/mmc/core/card.h
+@@ -284,4 +284,10 @@ static inline int mmc_card_broken_cache_flush(const struct mmc_card *c)
+ {
+ 	return c->quirks & MMC_QUIRK_BROKEN_CACHE_FLUSH;
+ }
++
++static inline int mmc_card_broken_rocr_s18a(const struct mmc_card *c)
++{
++	return c->quirks & MMC_QUIRK_BROKEN_ROCR_S18A;
++}
++
+ #endif
+diff --git a/drivers/mmc/core/quirks.h b/drivers/mmc/core/quirks.h
+index cca71867bc4..4a5a9c5c201 100644
+--- a/drivers/mmc/core/quirks.h
++++ b/drivers/mmc/core/quirks.h
+@@ -177,6 +177,9 @@ static const struct mmc_fixup __maybe_unused sdio_fixup_methods[] = {
+ };
+ 
+ static const struct mmc_fixup __maybe_unused sdio_card_init_methods[] = {
++	SDIO_FIXUP_COMPATIBLE("realtek,rtl8822cs", add_quirk,
++			      MMC_QUIRK_BROKEN_ROCR_S18A),
++
+ 	SDIO_FIXUP_COMPATIBLE("ti,wl1251", wl1251_quirk, 0),
+ 
+ 	SDIO_FIXUP_COMPATIBLE("silabs,wf200", add_quirk,
+diff --git a/drivers/mmc/core/sdio.c b/drivers/mmc/core/sdio.c
+index 5914516df2f..623cd1d5cfa 100644
+--- a/drivers/mmc/core/sdio.c
++++ b/drivers/mmc/core/sdio.c
+@@ -726,6 +726,10 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
+ 
+ 	card->ocr = ocr_card;
+ 
++	if (mmc_card_broken_rocr_s18a(card)) {
++		rocr &= ~R4_18V_PRESENT;
++	}
++
+ 	/*
+ 	 * If the host and card support UHS-I mode request the card
+ 	 * to switch to 1.8V signaling level.  No 1.8v signalling if
+diff --git a/include/linux/mmc/card.h b/include/linux/mmc/card.h
+index 7b12eebc558..e7ad5477ca5 100644
+--- a/include/linux/mmc/card.h
++++ b/include/linux/mmc/card.h
+@@ -296,6 +296,7 @@ struct mmc_card {
+ #define MMC_QUIRK_BROKEN_SD_DISCARD	(1<<14)	/* Disable broken SD discard support */
+ #define MMC_QUIRK_BROKEN_SD_CACHE	(1<<15)	/* Disable broken SD cache support */
+ #define MMC_QUIRK_BROKEN_CACHE_FLUSH	(1<<16)	/* Don't flush cache until the write has occurred */
++#define MMC_QUIRK_BROKEN_ROCR_S18A	(1<<30)	/* Disable broken S18A (1) in the R4 response */
+ 
+ 	bool			written_flag;	/* Indicates eMMC has been written since power on */
+ 	bool			reenable_cmdq;	/* Re-enable Command Queue */
